@@ -17,66 +17,55 @@ app = Flask(__name__)
 def home():
     return render_template("index.html")
 
-# Store user settings (constant prompt, temperature, max tokens)
-user_settings = {
-    "constant_prompt": "",
-    "temperature": 0.7,  # Default value
-    "max_tokens": 100  # Default value
-}
+# Default user-configurable settings
+app.config['constant_prompt'] = ''
+app.config['temperature'] = 0.7
+app.config['max_tokens'] = 100
 
-@app.route("/set_settings", methods=["POST"])
+@app.route('/set_settings', methods=['POST'])
 def set_settings():
-    """Stores the constant prompt, temperature, and max tokens when the user clicks 'Save'."""
-    data = request.json
+    data = request.get_json()
+    app.config['constant_prompt'] = data.get('constant_prompt', '')
+    app.config['temperature'] = float(data.get('temperature', 0.7))
+    app.config['max_tokens'] = int(data.get('max_tokens', 100))
+    return jsonify({'status': 'success'})
 
-    # Update settings only when explicitly saved
-    if "constant_prompt" in data:
-        user_settings["constant_prompt"] = data["constant_prompt"]
-    if "temperature" in data:
-        user_settings["temperature"] = float(data["temperature"])
-    if "max_tokens" in data:
-        user_settings["max_tokens"] = int(data["max_tokens"])
-
-    return jsonify({
-        "message": "Settings saved successfully.",
-        "current_settings": user_settings
-    })
-
-@app.route("/chat", methods=["POST"])
+# Route to handle chat
+@app.route('/chat', methods=['POST'])
 def chat():
-    """Handles chat interaction with Groq API."""
-    data = request.json
-    user_message = data.get("message", "")
+    data = request.get_json()
+    chat_history = data.get('history', [])
 
-    # Retrieve stored settings
-    constant_prompt = user_settings["constant_prompt"]
-    temperature = user_settings["temperature"]
-    max_tokens = user_settings["max_tokens"]
+    # Insert the constant prompt at the beginning as a system message
+    constant_prompt = app.config.get('constant_prompt', '').strip()
+    if constant_prompt:
+        chat_history.insert(0, {"role": "system", "content": constant_prompt})
 
-    # Construct the full prompt
-    full_prompt = f"{constant_prompt}\nUser: {user_message}\nAI:"
-
-    # Prepare request payload for Groq API
+    # Prepare payload for Groq API
     payload = {
+        "messages": chat_history,
         "model": "llama-3.3-70b-versatile",
-        "messages": [{"role": "system", "content": constant_prompt}, 
-                     {"role": "user", "content": user_message}],
-        "temperature": temperature,
-        "max_tokens": max_tokens
+        "temperature": app.config.get('temperature', 0.7),
+        "max_tokens": app.config.get('max_tokens', 100)
     }
 
-    # Call Groq API
-    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
-    response = requests.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers)
-    print("Groq API Response:", response.status_code, response.text)  # Debugging output
+    # Make request to Groq API
+    try:
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json=payload
+        )
 
-    # Handle API response
-    if response.status_code == 200:
+        response.raise_for_status()
         reply = response.json()["choices"][0]["message"]["content"]
-    else:
-        reply = "Error: Could not get response from AI."
+        return jsonify({"reply": reply})
 
-    return jsonify({"reply": reply})
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))

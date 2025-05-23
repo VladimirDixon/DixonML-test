@@ -14,14 +14,13 @@ app = Flask(__name__)
 
 # Default user-configurable settings
 app.config['ai_name'] = 'DixonLM'
-app.config['constant_prompt'] = '' # This is the user-defined part of the system prompt
+app.config['constant_prompt'] = '' 
 app.config['temperature'] = 0.7
 app.config['max_tokens'] = 250
 app.config['top_p'] = 1.0
-app.config['top_k'] = 0 
+# app.config['top_k'] = 0 # REMOVED
 app.config['stop_sequences'] = None
 
-# Home route (renders the HTML chat page)
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -34,7 +33,7 @@ def get_settings():
         'temperature': app.config.get('temperature'),
         'max_tokens': app.config.get('max_tokens'),
         'top_p': app.config.get('top_p'),
-        'top_k': app.config.get('top_k'),
+        # 'top_k': app.config.get('top_k'), # REMOVED
         'stop_sequences': app.config.get('stop_sequences')
     }
     if settings['stop_sequences'] and isinstance(settings['stop_sequences'], list):
@@ -51,7 +50,7 @@ def set_settings():
     app.config['temperature'] = float(data.get('temperature', app.config['temperature']))
     app.config['max_tokens'] = int(data.get('max_tokens', app.config['max_tokens']))
     app.config['top_p'] = float(data.get('top_p', app.config['top_p']))
-    app.config['top_k'] = int(data.get('top_k', app.config['top_k']))
+    # app.config['top_k'] = int(data.get('top_k', app.config['top_k'])) # REMOVED
     
     stop_sequences_str = data.get('stop_sequences', '').strip()
     if stop_sequences_str:
@@ -61,33 +60,27 @@ def set_settings():
         
     return jsonify({'status': 'success', 'message': 'Settings saved!'})
 
-# Route to handle chat
 @app.route('/chat', methods=['POST'])
 def chat():
     data = request.get_json()
     chat_history = data.get('history', [])
 
-    # --- MODIFICATION FOR AI NAME IN SYSTEM PROMPT ---
     ai_model_name = app.config.get('ai_name', 'AI').strip()
     user_defined_system_prompt = app.config.get('constant_prompt', '').strip()
 
-    # Construct the full system prompt
-    # The model will be told its name, then any additional system instructions are appended.
     full_system_prompt_parts = []
-    if ai_model_name: # Ensure ai_model_name is not empty
+    if ai_model_name: 
         full_system_prompt_parts.append(f"You are {ai_model_name}.")
     if user_defined_system_prompt:
         full_system_prompt_parts.append(user_defined_system_prompt)
     
-    final_system_prompt = "\n\n".join(full_system_prompt_parts).strip() # Use double newline for better separation if both parts exist
+    final_system_prompt = "\n\n".join(full_system_prompt_parts).strip() 
 
     if final_system_prompt:
-        # Ensure system prompt is always the first message and there's only one
         if not chat_history or chat_history[0].get("role") != "system":
             chat_history.insert(0, {"role": "system", "content": final_system_prompt})
         elif chat_history[0].get("role") == "system":
-            chat_history[0]["content"] = final_system_prompt # Update existing system prompt
-    # --- END OF MODIFICATION ---
+            chat_history[0]["content"] = final_system_prompt 
             
     payload = {
         "messages": chat_history,
@@ -95,10 +88,8 @@ def chat():
         "temperature": app.config.get('temperature', 0.7),
         "max_tokens": app.config.get('max_tokens', 250),
         "top_p": app.config.get('top_p', 1.0)
+        # top_k is completely removed from payload
     }
-
-    if app.config.get('top_k', 0) > 0:
-        payload["top_k"] = app.config.get('top_k')
 
     if app.config.get('stop_sequences'):
         payload["stop"] = app.config.get('stop_sequences')
@@ -115,18 +106,18 @@ def chat():
         response.raise_for_status()
         reply_data = response.json()
         
-        reply = "Error: No valid response from API." # Default error reply
+        reply = "Error: No valid response from API."
         if reply_data.get("choices") and len(reply_data["choices"]) > 0:
             message = reply_data["choices"][0].get("message")
             if message and "content" in message:
                 reply = message["content"]
-            elif message:
+            elif message: 
                 reply = "Received an empty message content from API."
-            else:
-                reply = "API response format error: 'message' object missing."
-        else:
+        else: 
             reply = "API did not return any 'choices'."
-            
+            if reply_data.get("error") and reply_data["error"].get("message"):
+                reply = f"API Error: {reply_data['error']['message']}"
+
         return jsonify({"reply": reply})
 
     except requests.exceptions.RequestException as e:
@@ -134,7 +125,10 @@ def chat():
         if e.response is not None:
             try:
                 error_detail = e.response.json()
-                error_message += f" - Details: {error_detail}"
+                if isinstance(error_detail.get("error"), dict) and error_detail["error"].get("message"):
+                     error_message += f" - Details: {error_detail['error']['message']}"
+                else:
+                    error_message += f" - Details: {error_detail}"
             except ValueError: 
                 error_message += f" - Server Response: {e.response.text}"
         return jsonify({"error": error_message}), 500

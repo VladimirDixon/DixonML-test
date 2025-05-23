@@ -12,23 +12,54 @@ if not GROQ_API_KEY:
 
 app = Flask(__name__)
 
+# Default user-configurable settings
+app.config['ai_name'] = 'DixonLM'
+app.config['constant_prompt'] = '' # This is the user-defined part of the system prompt
+app.config['temperature'] = 0.7
+app.config['max_tokens'] = 250
+app.config['top_p'] = 1.0
+app.config['top_k'] = 0 
+app.config['stop_sequences'] = None
+
 # Home route (renders the HTML chat page)
 @app.route("/")
 def home():
     return render_template("index.html")
 
-# Default user-configurable settings
-app.config['constant_prompt'] = ''
-app.config['temperature'] = 0.7
-app.config['max_tokens'] = 100
+@app.route('/get_settings', methods=['GET'])
+def get_settings():
+    settings = {
+        'ai_name': app.config.get('ai_name'),
+        'constant_prompt': app.config.get('constant_prompt'),
+        'temperature': app.config.get('temperature'),
+        'max_tokens': app.config.get('max_tokens'),
+        'top_p': app.config.get('top_p'),
+        'top_k': app.config.get('top_k'),
+        'stop_sequences': app.config.get('stop_sequences')
+    }
+    if settings['stop_sequences'] and isinstance(settings['stop_sequences'], list):
+        settings['stop_sequences_str'] = ",".join(settings['stop_sequences'])
+    else:
+        settings['stop_sequences_str'] = ""
+    return jsonify(settings)
 
 @app.route('/set_settings', methods=['POST'])
 def set_settings():
     data = request.get_json()
-    app.config['constant_prompt'] = data.get('constant_prompt', '')
-    app.config['temperature'] = float(data.get('temperature', 0.7))
-    app.config['max_tokens'] = int(data.get('max_tokens', 100))
-    return jsonify({'status': 'success'})
+    app.config['ai_name'] = data.get('ai_name', app.config['ai_name']).strip()
+    app.config['constant_prompt'] = data.get('constant_prompt', app.config['constant_prompt']).strip()
+    app.config['temperature'] = float(data.get('temperature', app.config['temperature']))
+    app.config['max_tokens'] = int(data.get('max_tokens', app.config['max_tokens']))
+    app.config['top_p'] = float(data.get('top_p', app.config['top_p']))
+    app.config['top_k'] = int(data.get('top_k', app.config['top_k']))
+    
+    stop_sequences_str = data.get('stop_sequences', '').strip()
+    if stop_sequences_str:
+        app.config['stop_sequences'] = [s.strip() for s in stop_sequences_str.split(',') if s.strip()]
+    else:
+        app.config['stop_sequences'] = None
+        
+    return jsonify({'status': 'success', 'message': 'Settings saved!'})
 
 # Route to handle chat
 @app.route('/chat', methods=['POST'])
@@ -36,20 +67,42 @@ def chat():
     data = request.get_json()
     chat_history = data.get('history', [])
 
-    # Insert the constant prompt at the beginning as a system message
-    constant_prompt = app.config.get('constant_prompt', '').strip()
-    if constant_prompt:
-        chat_history.insert(0, {"role": "system", "content": constant_prompt})
+    # --- MODIFICATION FOR AI NAME IN SYSTEM PROMPT ---
+    ai_model_name = app.config.get('ai_name', 'AI').strip()
+    user_defined_system_prompt = app.config.get('constant_prompt', '').strip()
 
-    # Prepare payload for Groq API
+    # Construct the full system prompt
+    # The model will be told its name, then any additional system instructions are appended.
+    full_system_prompt_parts = []
+    if ai_model_name: # Ensure ai_model_name is not empty
+        full_system_prompt_parts.append(f"You are {ai_model_name}.")
+    if user_defined_system_prompt:
+        full_system_prompt_parts.append(user_defined_system_prompt)
+    
+    final_system_prompt = "\n\n".join(full_system_prompt_parts).strip() # Use double newline for better separation if both parts exist
+
+    if final_system_prompt:
+        # Ensure system prompt is always the first message and there's only one
+        if not chat_history or chat_history[0].get("role") != "system":
+            chat_history.insert(0, {"role": "system", "content": final_system_prompt})
+        elif chat_history[0].get("role") == "system":
+            chat_history[0]["content"] = final_system_prompt # Update existing system prompt
+    # --- END OF MODIFICATION ---
+            
     payload = {
         "messages": chat_history,
-        "model": "llama-3.3-70b-versatile",
+        "model": "llama3-70b-8192", 
         "temperature": app.config.get('temperature', 0.7),
-        "max_tokens": app.config.get('max_tokens', 100)
+        "max_tokens": app.config.get('max_tokens', 250),
+        "top_p": app.config.get('top_p', 1.0)
     }
 
-    # Make request to Groq API
+    if app.config.get('top_k', 0) > 0:
+        payload["top_k"] = app.config.get('top_k')
+
+    if app.config.get('stop_sequences'):
+        payload["stop"] = app.config.get('stop_sequences')
+
     try:
         response = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
@@ -59,13 +112,34 @@ def chat():
             },
             json=payload
         )
-
         response.raise_for_status()
-        reply = response.json()["choices"][0]["message"]["content"]
+        reply_data = response.json()
+        
+        reply = "Error: No valid response from API." # Default error reply
+        if reply_data.get("choices") and len(reply_data["choices"]) > 0:
+            message = reply_data["choices"][0].get("message")
+            if message and "content" in message:
+                reply = message["content"]
+            elif message:
+                reply = "Received an empty message content from API."
+            else:
+                reply = "API response format error: 'message' object missing."
+        else:
+            reply = "API did not return any 'choices'."
+            
         return jsonify({"reply": reply})
 
     except requests.exceptions.RequestException as e:
-        return jsonify({"error": str(e)}), 500
+        error_message = f"API Request Error: {str(e)}"
+        if e.response is not None:
+            try:
+                error_detail = e.response.json()
+                error_message += f" - Details: {error_detail}"
+            except ValueError: 
+                error_message += f" - Server Response: {e.response.text}"
+        return jsonify({"error": error_message}), 500
+    except Exception as e: 
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))

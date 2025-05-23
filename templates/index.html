@@ -9,92 +9,138 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         body {
             display: flex;
             height: 100vh;
+            background-color: #1e1e1e; /* Dark background for the whole page */
+            color: #d4d4d4; /* Light text color */
         }
 
         #settings {
             width: 30%;
-            background-color: #6ab0f3;
-            padding: 20px;
+            min-width: 300px; /* Minimum width for settings panel */
+            background-color: #252526; /* Slightly lighter dark for settings panel */
+            padding: 25px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            /* justify-content: center; Remove to align items to top */
             position: fixed;
             height: 100%;
             left: 0;
             top: 0;
+            border-right: 1px solid #333333; /* Subtle border */
+            overflow-y: auto;
         }
 
-        #settings textarea, #settings input {
+        #settings h2, #settings label {
+            color: #cccccc; /* Lighter text for labels and headings */
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+        
+        #settings h2:first-child {
+            margin-top: 0;
+        }
+
+        #settings textarea, #settings input[type="text"], #settings input[type="number"] {
             width: 100%;
-            margin: 10px 0;
-            padding: 8px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #3c3c3c; /* Darker border */
+            background-color: #333333; /* Dark input background */
+            color: #d4d4d4; /* Light text in inputs */
+            font-size: 15px;
         }
 
         #constantPrompt {
-            height: 150px;
-            font-size: 18px;
-            resize: none;
+            min-height: 100px; /* Adjusted height */
+            resize: vertical;
         }
 
         #saveSettings {
-            background-color: #004080;
+            background-color: #007acc; /* Accent blue */
             color: white;
             border: none;
             font-size: 16px;
-            padding: 12px;
+            padding: 12px 18px;
             cursor: pointer;
-            border-radius: 5px;
-            margin-top: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
+            transition: background-color 0.2s ease;
         }
 
         #saveSettings:hover {
-            background-color: #002d5b;
+            background-color: #005fa3; /* Darker blue on hover */
+        }
+        
+        #statusMessage {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #007acc; /* Accent color for status */
+            text-align: center;
+            min-height: 20px;
         }
 
         #chatContainer {
             width: 70%;
             margin-left: 30%;
-            padding: 20px;
-            background-color: #08306b;
-            color: white;
+            background-color: #1e1e1e; /* Main chat area background */
+            color: #d4d4d4;
             display: flex;
             flex-direction: column;
             height: 100vh;
+            padding: 20px;
+        }
+
+        #chatContainer h1 {
+            text-align: center;
+            color: #007acc; /* Accent color for title */
+            margin-bottom: 20px;
+            font-weight: 300;
         }
 
         #chatbox {
             flex-grow: 1;
             overflow-y: auto;
-            padding: 10px;
-            border: 1px solid #ddd;
-            background-color: white;
-            color: black;
-            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid #333333;
+            background-color: #252526; /* Slightly lighter dark for chatbox */
+            border-radius: 8px;
+            margin-bottom: 15px;
         }
 
         .message {
-            margin: 5px 0;
-            padding: 8px;
-            border-radius: 10px;
-            max-width: 70%;
+            margin-bottom: 12px;
+            padding: 10px 15px;
+            border-radius: 18px; /* More rounded messages */
+            max-width: 75%;
+            line-height: 1.5;
+            word-wrap: break-word;
         }
 
         .user {
-            background-color: #6ab0f3;
+            background-color: #007acc; /* Accent blue for user */
+            color: white;
             align-self: flex-end;
+            margin-left: auto; /* Push to right */
+            border-bottom-right-radius: 5px; /* Slightly different shape */
         }
 
         .ai {
-            background-color: #e0e0e0;
+            background-color: #3c3c3c; /* Darker gray for AI */
+            color: #d4d4d4;
             align-self: flex-start;
+            margin-right: auto; /* Push to left */
+            border-bottom-left-radius: 5px; /* Slightly different shape */
+        }
+        
+        .message b { /* Styling for "You:" and "AI:" prefixes */
+            font-weight: 600;
+            margin-right: 5px;
         }
 
         #inputContainer {
@@ -104,47 +150,79 @@
 
         #userInput {
             flex-grow: 1;
-            padding: 10px;
-            font-size: 18px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
+            padding: 12px 15px;
+            font-size: 16px;
+            border-radius: 20px; /* Pill shape */
+            border: 1px solid #3c3c3c;
+            background-color: #333333;
+            color: #d4d4d4;
+            margin-right: 10px;
         }
 
         #sendMessage {
             font-size: 16px;
-            padding: 12px;
-            background-color: #004080;
+            padding: 12px 20px;
+            background-color: #007acc;
             color: white;
             border: none;
             cursor: pointer;
-            border-radius: 5px;
-            margin-left: 5px;
+            border-radius: 20px; /* Pill shape */
+            transition: background-color 0.2s ease;
         }
 
         #sendMessage:hover {
-            background-color: #002d5b;
+            background-color: #005fa3;
         }
+
+        /* Scrollbar styling for webkit browsers */
+        #chatbox::-webkit-scrollbar, #settings::-webkit-scrollbar {
+            width: 8px;
+        }
+        #chatbox::-webkit-scrollbar-track, #settings::-webkit-scrollbar-track {
+            background: #252526;
+        }
+        #chatbox::-webkit-scrollbar-thumb, #settings::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+        #chatbox::-webkit-scrollbar-thumb:hover, #settings::-webkit-scrollbar-thumb:hover {
+            background: #777;
+        }
+
     </style>
 </head>
 <body>
 
     <!-- Left Panel (Settings) -->
     <div id="settings">
-        <h2>Instruction</h2>
-        <textarea id="constantPrompt" rows="4" placeholder="Enter constant prompt..."></textarea>
+        <h2>System Prompt</h2>
+        <textarea id="constantPrompt" placeholder="e.g., You are a helpful assistant."></textarea>
 
-        <label>Temperature:</label>
-        <input type="number" id="temperature" min="0" max="1" step="0.1" value="0.7">
+        <label for="aiName">AI Display Name:</label>
+        <input type="text" id="aiName" value="DixonLM">
 
-        <label>Max Tokens:</label>
-        <input type="number" id="maxTokens" min="1" max="500" step="1" value="100">
+        <label for="temperature">Temperature:</label>
+        <input type="number" id="temperature" min="0" max="2" step="0.01" value="0.7">
 
-        <button id="saveSettings">Save</button>
+        <label for="maxTokens">Max Tokens:</label>
+        <input type="number" id="maxTokens" min="1" max="8000" step="1" value="250">
+        
+        <label for="topP">Top P:</label>
+        <input type="number" id="topP" min="0" max="1" step="0.01" value="1.0">
+
+        <label for="topK">Top K:</label>
+        <input type="number" id="topK" min="0" max="100" step="1" value="0">
+        
+        <label for="stopSequences">Stop Sequences (comma-separated):</label>
+        <input type="text" id="stopSequences" placeholder="e.g., \n,User:">
+
+        <button id="saveSettings">Save Settings</button>
+        <div id="statusMessage"></div>
     </div>
 
     <!-- Right Panel (Chat) -->
     <div id="chatContainer">
-        <h1>Chat with DixonLM</h1>
+        <h1 id="chatTitle">Chat with DixonLM</h1>
         <div id="chatbox"></div>
 
         <div id="inputContainer">
@@ -154,66 +232,153 @@
     </div>
 
     <script>
-        // Keep track of full conversation
         let chatHistory = [];
+        let currentAiName = "DixonLM"; // Default, will be updated from server
+
+        const chatbox = document.getElementById("chatbox");
+        const userInput = document.getElementById("userInput");
+        const sendMessageBtn = document.getElementById("sendMessage");
+        const saveSettingsBtn = document.getElementById("saveSettings");
+        const statusMessage = document.getElementById("statusMessage");
+        
+        // Settings input fields
+        const constantPromptInput = document.getElementById("constantPrompt");
+        const aiNameInput = document.getElementById("aiName");
+        const temperatureInput = document.getElementById("temperature");
+        const maxTokensInput = document.getElementById("maxTokens");
+        const topPInput = document.getElementById("topP");
+        const topKInput = document.getElementById("topK");
+        const stopSequencesInput = document.getElementById("stopSequences");
+        const chatTitle = document.getElementById("chatTitle");
+
+        // Function to load settings from backend and populate UI
+        function loadSettings() {
+            fetch("/get_settings")
+                .then(response => response.json())
+                .then(data => {
+                    constantPromptInput.value = data.constant_prompt || "";
+                    aiNameInput.value = data.ai_name || "DixonLM";
+                    currentAiName = data.ai_name || "DixonLM";
+                    chatTitle.textContent = "Chat with " + currentAiName;
+                    temperatureInput.value = data.temperature !== undefined ? data.temperature : 0.7;
+                    maxTokensInput.value = data.max_tokens !== undefined ? data.max_tokens : 250;
+                    topPInput.value = data.top_p !== undefined ? data.top_p : 1.0;
+                    topKInput.value = data.top_k !== undefined ? data.top_k : 0;
+                    stopSequencesInput.value = data.stop_sequences_str || "";
+                    
+                    // Update currentAiName used for displaying messages
+                    updateCurrentAiName(aiNameInput.value);
+                })
+                .catch(error => {
+                    console.error("Error loading settings:", error);
+                    statusMessage.textContent = "Error loading settings.";
+                    statusMessage.style.color = "#ff4d4d";
+                });
+        }
+        
+        function updateCurrentAiName(newName) {
+            currentAiName = newName.trim() || "AI"; // Fallback to "AI" if empty
+            chatTitle.textContent = "Chat with " + currentAiName;
+        }
 
         // Save user settings
-        document.getElementById("saveSettings").addEventListener("click", function() {
-            const constantPrompt = document.getElementById("constantPrompt").value;
-            const temperature = document.getElementById("temperature").value;
-            const maxTokens = document.getElementById("maxTokens").value;
+        saveSettingsBtn.addEventListener("click", function() {
+            const settingsData = {
+                constant_prompt: constantPromptInput.value,
+                ai_name: aiNameInput.value,
+                temperature: temperatureInput.value,
+                max_tokens: maxTokensInput.value,
+                top_p: topPInput.value,
+                top_k: topKInput.value,
+                stop_sequences: stopSequencesInput.value
+            };
 
             fetch("/set_settings", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    constant_prompt: constantPrompt,
-                    temperature: temperature,
-                    max_tokens: maxTokens
-                })
+                body: JSON.stringify(settingsData)
             })
             .then(response => response.json())
-            .then(data => alert("Settings saved successfully!"));
+            .then(data => {
+                statusMessage.textContent = data.message || "Settings saved!";
+                statusMessage.style.color = "#007acc";
+                updateCurrentAiName(settingsData.ai_name); // Update display name immediately
+                setTimeout(() => statusMessage.textContent = "", 3000);
+            })
+            .catch(error => {
+                console.error("Error saving settings:", error);
+                statusMessage.textContent = "Error saving settings.";
+                statusMessage.style.color = "#ff4d4d";
+            });
         });
+
+        // Function to add message to chatbox
+        function addMessageToChatbox(sender, message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', sender.toLowerCase());
+            // Sanitize message content slightly before inserting as HTML
+            const cleanMessage = message.replace(/</g, "<").replace(/>/g, ">");
+            messageDiv.innerHTML = `<b>${sender}:</b> ${cleanMessage}`;
+            chatbox.appendChild(messageDiv);
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
 
         // Function to send message
         function sendMessage() {
-            const userInput = document.getElementById("userInput").value;
-            if (!userInput.trim()) return;
+            const userMessage = userInput.value.trim();
+            if (!userMessage) return;
 
-            let chatbox = document.getElementById("chatbox");
+            addMessageToChatbox("You", userMessage);
+            chatHistory.push({ role: "user", content: userMessage });
 
-            // Display and store user message
-            chatbox.innerHTML += `<div class="message user"><b>You:</b> ${userInput}</div>`;
-            chatHistory.push({ role: "user", content: userInput });
+            // Disable input while waiting for reply
+            userInput.disabled = true;
+            sendMessageBtn.disabled = true;
 
             fetch("/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ history: chatHistory })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.error || `HTTP error ${response.status}`) });
+                }
+                return response.json();
+            })
             .then(data => {
-                chatbox.innerHTML += `<div class="message ai"><b>AI:</b> ${data.reply}</div>`;
-                chatbox.scrollTop = chatbox.scrollHeight;
-
-                // Store AI reply
-                chatHistory.push({ role: "assistant", content: data.reply });
+                if (data.error) {
+                    addMessageToChatbox(currentAiName, `Error: ${data.error}`);
+                } else {
+                    addMessageToChatbox(currentAiName, data.reply);
+                    chatHistory.push({ role: "assistant", content: data.reply });
+                }
+            })
+            .catch(error => {
+                console.error("Error during chat:", error);
+                addMessageToChatbox(currentAiName, `Error: ${error.message}`);
+            })
+            .finally(() => {
+                // Re-enable input
+                userInput.disabled = false;
+                sendMessageBtn.disabled = false;
+                userInput.focus();
             });
 
-            document.getElementById("userInput").value = "";
+            userInput.value = "";
         }
 
-        // Send message on button click
-        document.getElementById("sendMessage").addEventListener("click", sendMessage);
-
-        // Send message on pressing Enter key
-        document.getElementById("userInput").addEventListener("keypress", function(event) {
+        sendMessageBtn.addEventListener("click", sendMessage);
+        userInput.addEventListener("keypress", function(event) {
             if (event.key === "Enter") {
                 event.preventDefault();
                 sendMessage();
             }
         });
+
+        // Load settings when the page loads
+        document.addEventListener('DOMContentLoaded', loadSettings);
+
     </script>
 
 </body>

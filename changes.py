@@ -13,12 +13,12 @@ if not GROQ_API_KEY:
 app = Flask(__name__)
 
 # Default user-configurable settings
+app.config['model'] = 'llama3-8b-8192' # Default model
 app.config['ai_name'] = 'DixonLM'
 app.config['constant_prompt'] = '' 
 app.config['temperature'] = 0.7
 app.config['max_tokens'] = 250
 app.config['top_p'] = 1.0
-# app.config['top_k'] = 0 # REMOVED
 app.config['stop_sequences'] = None
 
 @app.route("/")
@@ -28,12 +28,12 @@ def home():
 @app.route('/get_settings', methods=['GET'])
 def get_settings():
     settings = {
+        'model': app.config.get('model'), # New
         'ai_name': app.config.get('ai_name'),
         'constant_prompt': app.config.get('constant_prompt'),
         'temperature': app.config.get('temperature'),
         'max_tokens': app.config.get('max_tokens'),
         'top_p': app.config.get('top_p'),
-        # 'top_k': app.config.get('top_k'), # REMOVED
         'stop_sequences': app.config.get('stop_sequences')
     }
     if settings['stop_sequences'] and isinstance(settings['stop_sequences'], list):
@@ -45,12 +45,12 @@ def get_settings():
 @app.route('/set_settings', methods=['POST'])
 def set_settings():
     data = request.get_json()
+    app.config['model'] = data.get('model', app.config['model']) # New
     app.config['ai_name'] = data.get('ai_name', app.config['ai_name']).strip()
     app.config['constant_prompt'] = data.get('constant_prompt', app.config['constant_prompt']).strip()
     app.config['temperature'] = float(data.get('temperature', app.config['temperature']))
     app.config['max_tokens'] = int(data.get('max_tokens', app.config['max_tokens']))
     app.config['top_p'] = float(data.get('top_p', app.config['top_p']))
-    # app.config['top_k'] = int(data.get('top_k', app.config['top_k'])) # REMOVED
     
     stop_sequences_str = data.get('stop_sequences', '').strip()
     if stop_sequences_str:
@@ -84,11 +84,10 @@ def chat():
             
     payload = {
         "messages": chat_history,
-        "model": "llama3-70b-8192", 
+        "model": app.config.get('model'), # Use the selected model from config
         "temperature": app.config.get('temperature', 0.7),
         "max_tokens": app.config.get('max_tokens', 250),
         "top_p": app.config.get('top_p', 1.0)
-        # top_k is completely removed from payload
     }
 
     if app.config.get('stop_sequences'):

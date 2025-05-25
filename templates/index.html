@@ -15,14 +15,14 @@
         body {
             display: flex;
             height: 100vh;
-            background-color: #121212; /* Deep dark background */
-            color: #E0E0E0; /* Main light text color */
+            background-color: #121212; 
+            color: #E0E0E0; 
         }
 
         #settings {
             width: 30%;
             min-width: 320px; 
-            background-color: #1E1E1E; /* Dark panel background */
+            background-color: #1E1E1E; 
             padding: 25px;
             display: flex;
             flex-direction: column;
@@ -30,7 +30,7 @@
             height: 100%;
             left: 0;
             top: 0;
-            border-right: 1px solid #383838; /* Slightly more visible border */
+            border-right: 1px solid #383838; 
             overflow-y: auto;
         }
         
@@ -61,7 +61,8 @@
             font-size: 14px;
         }
 
-
+        /* Style for select dropdown */
+        #settings select,
         #settings textarea, #settings input[type="text"], #settings input[type="number"] {
             width: 100%;
             margin-bottom: 15px;
@@ -72,6 +73,15 @@
             color: #E0E0E0; 
             font-size: 15px;
         }
+        #settings select {
+             appearance: none; /* For custom arrow if desired, or default browser arrow */
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007ACC%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 12px;
+            padding-right: 30px; /* Make space for arrow */
+        }
+
 
         #constantPrompt {
             min-height: 100px; 
@@ -195,7 +205,6 @@
             background-color: #005FA3;
         }
 
-        /* Scrollbar styling for webkit browsers */
         #chatbox::-webkit-scrollbar, #settings::-webkit-scrollbar {
             width: 10px; 
         }
@@ -216,8 +225,20 @@
 <body>
 
     <div id="settings">
-        <h2>System Prompt</h2>
         <div class="settings-content-wrapper"> 
+            <label for="modelSelect">Select Model:</label>
+            <select id="modelSelect">
+                <option value="llama3-8b-8192">Llama 3 (8B Instruct)</option>
+                <option value="llama3-70b-8192">Llama 3 (70B Instruct)</option>
+                <option value="llama-3.3-70b-versatile">Llama 3.3 (70B Versatile)</option>
+                <option value="llama-3.1-8b-instant">Llama 3.1 (8B Instant)</option>
+                <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout (17B Instruct)</option>
+                <option value="gemma2-9b-it">Gemma2 (9B IT)</option>
+                <option value="qwen-qwq-32b">Qwen (32B)</option> <!-- Simplified name -->
+                <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 Distill (Llama 70B)</option>
+            </select>
+
+            <h2>System Prompt</h2>
             <textarea id="constantPrompt" placeholder="e.g., You are a helpful assistant."></textarea>
 
             <label for="aiName">AI Display Name:</label>
@@ -227,7 +248,7 @@
             <input type="number" id="temperature" min="0" max="2" step="0.01" value="0.7">
 
             <label for="maxTokens">Max Tokens:</label>
-            <input type="number" id="maxTokens" min="1" max="8000" step="1" value="250">
+            <input type="number" id="maxTokens" min="1" max="8192" step="1" value="250"> <!-- Increased max based on Llama3 context -->
             
             <label for="topP">Top P:</label>
             <input type="number" id="topP" min="0" max="1" step="0.01" value="1.0">
@@ -259,12 +280,12 @@
         const saveSettingsBtn = document.getElementById("saveSettings");
         const statusMessage = document.getElementById("statusMessage");
         
+        const modelSelect = document.getElementById("modelSelect"); // New
         const constantPromptInput = document.getElementById("constantPrompt");
         const aiNameInput = document.getElementById("aiName");
         const temperatureInput = document.getElementById("temperature");
         const maxTokensInput = document.getElementById("maxTokens");
         const topPInput = document.getElementById("topP");
-        // const topKInput = document.getElementById("topK"); // REMOVED
         const stopSequencesInput = document.getElementById("stopSequences");
         const chatTitle = document.getElementById("chatTitle");
 
@@ -272,6 +293,7 @@
             fetch("/get_settings")
                 .then(response => response.json())
                 .then(data => {
+                    modelSelect.value = data.model || "llama3-8b-8192"; // New
                     constantPromptInput.value = data.constant_prompt || "";
                     aiNameInput.value = data.ai_name || "DixonLM";
                     currentAiName = data.ai_name || "DixonLM"; 
@@ -279,7 +301,6 @@
                     temperatureInput.value = data.temperature !== undefined ? data.temperature : 0.7;
                     maxTokensInput.value = data.max_tokens !== undefined ? data.max_tokens : 250;
                     topPInput.value = data.top_p !== undefined ? data.top_p : 1.0;
-                    // topKInput.value = data.top_k !== undefined ? data.top_k : 0; // REMOVED
                     stopSequencesInput.value = data.stop_sequences_str || "";
                     
                     updateCurrentAiName(aiNameInput.value);
@@ -301,12 +322,12 @@
             statusMessage.style.color = "#007ACC";
 
             const settingsData = {
+                model: modelSelect.value, // New
                 constant_prompt: constantPromptInput.value,
                 ai_name: aiNameInput.value,
                 temperature: temperatureInput.value,
                 max_tokens: maxTokensInput.value,
                 top_p: topPInput.value,
-                // top_k: topKInput.value, // REMOVED
                 stop_sequences: stopSequencesInput.value
             };
 
